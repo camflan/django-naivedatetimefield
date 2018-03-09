@@ -46,7 +46,6 @@ class NaiveDateTimeFieldTestCase(TestCase):
         self.assertTrue(timezone.is_aware(now))
         self.assertTrue(timezone.is_naive(los_angeles_local_now))
 
-        self.assertNotEqual(now, los_angeles_local_now)
         self.assertEqual(now, timezone.make_aware(los_angeles_local_now))
 
         obj = NaiveDateTimeTestModel.objects.create(
