@@ -1,0 +1,76 @@
+# Send this build to the travis.ci container-based infrastructure
+# which typically has more capacity than the open-source Linux pool
+sudo: false
+# Tell Travis you want a Python environment to test in
+language: python
+# List the versions of Python you'd like to test against
+matrix:
+  include:
+    - python: "2.7"
+      env: DJANGO_VERSION=1.8.18
+    - python: "2.7"
+      env: DJANGO_VERSION=1.8.18
+    - python: "2.7"
+      env: DJANGO_VERSION=1.9.13
+    - python: "2.7"
+      env: DJANGO_VERSION=1.10.7
+    - python: "2.7"
+      env: DJANGO_VERSION=1.11.9
+    - python: "3.4"
+      env: DJANGO_VERSION=1.8.18
+    - python: "3.4"
+      env: DJANGO_VERSION=1.8.18
+    - python: "3.4"
+      env: DJANGO_VERSION=1.9.13
+    - python: "3.4"
+      env: DJANGO_VERSION=1.10.7
+    - python: "3.4"
+      env: DJANGO_VERSION=1.11.9
+    - python: "3.4"
+      env: DJANGO_VERSION=1.11.9
+    - python: "3.4"
+      env: DJANGO_VERSION=2.0.1
+    - python: "3.5"
+      env: DJANGO_VERSION=1.8.18
+    - python: "3.5"
+      env: DJANGO_VERSION=1.8.18
+    - python: "3.5"
+      env: DJANGO_VERSION=1.9.13
+    - python: "3.5"
+      env: DJANGO_VERSION=1.10.7
+    - python: "3.5"
+      env: DJANGO_VERSION=1.11.2
+    - python: "3.5"
+      env: DJANGO_VERSION=1.11.9
+    - python: "3.5"
+      env: DJANGO_VERSION=2.0.1
+    - python: "3.6"
+      env: DJANGO_VERSION=1.8.18
+    - python: "3.6"
+      env: DJANGO_VERSION=1.8.18
+    - python: "3.6"
+      env: DJANGO_VERSION=1.9.13
+    - python: "3.6"
+      env: DJANGO_VERSION=1.10.7
+    - python: "3.6"
+      env: DJANGO_VERSION=1.11.9
+    - python: "3.6"
+      env: DJANGO_VERSION=1.11.9
+    - python: "3.6"
+      env: DJANGO_VERSION=2.0.1
+before_install:
+  - export DJANGO_SETTINGS_MODULE=tests.settings
+# Tell it the things it will need to install when it boots
+install:
+ - pip install -e .
+   # Install whatever version of Django that's listed above
+   # Travis is currently working on
+ - pip install -q Django==$DJANGO_VERSION
+ - pip install coveralls
+ - pip install flake8
+# Tell Travis how to run the test script itself
+script:
+- flake8 naivedatetimefield/
+- coverage run --parallel-mode --source=naivedatetimefield runtests.py
+- coverage combine
+after_success: coveralls
