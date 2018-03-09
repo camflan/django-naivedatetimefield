@@ -114,7 +114,7 @@ class NaiveDateTimeField(models.DateField):
         '''
         Ensure we have a naive datetime ready for insertion
         '''
-        value = super().get_prep_value(value)
+        value = super(NaiveDateTimeField, self).get_prep_value(value)
         value = self.to_python(value)
 
         if value is not None and timezone.is_aware(value):
@@ -151,7 +151,7 @@ class NaiveDateTimeField(models.DateField):
             setattr(model_instance, self.attname, value)
             return value
         else:
-            return super().pre_save(model_instance, add)
+            return super(NaiveDateTimeField, self).pre_save(model_instance, add)
 
     def value_to_string(self, obj):
         val = self.value_from_object(obj)
@@ -160,4 +160,4 @@ class NaiveDateTimeField(models.DateField):
     def formfield(self, **kwargs):
         defaults = {'form_class': forms.DateTimeField}
         defaults.update(kwargs)
-        return super().formfield(**defaults)
+        return super(NaiveDateTimeField, self).formfield(**defaults)
