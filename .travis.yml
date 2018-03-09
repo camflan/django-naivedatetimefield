@@ -58,6 +58,8 @@ matrix:
       env: DJANGO_VERSION=1.11.9
     - python: "3.6"
       env: DJANGO_VERSION=2.0.1
+before_script:
+  - export TZ=America/Los_Angeles
 before_install:
   - export DJANGO_SETTINGS_MODULE=tests.settings
 # Tell it the things it will need to install when it boots
