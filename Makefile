@@ -3,7 +3,8 @@
 DIST_DIR := ./dist
 BUILD_DIR := ./build
 
-all: $(DIST_DIR) publish
+all: build
+build: $(DIST_DIR)
 
 clean:
 	rm -rf $(DIST_DIR)
