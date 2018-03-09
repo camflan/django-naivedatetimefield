@@ -1,4 +1,4 @@
-.PHONY = clean
+.PHONY: clean install-dev install uninstall publish
 
 DIST_DIR := ./dist
 BUILD_DIR := ./build
@@ -9,6 +9,15 @@ clean:
 	rm -rf $(DIST_DIR)
 	rm -rf $(BUILD_DIR)
 	rm -rf *.egg-info
+
+install-dev:
+	pip install -e .
+
+install:
+	pip install .
+
+uninstall:
+	pip uninstall .
 
 $(DIST_DIR): setup.cfg setup.py naivedatetimefield/**
 	python setup.py sdist
