@@ -68,6 +68,7 @@ install:
    # Install whatever version of Django that's listed above
    # Travis is currently working on
  - pip install -q Django==$DJANGO_VERSION
+ - pip install pytz
  - pip install coveralls
  - pip install flake8
 # Tell Travis how to run the test script itself
