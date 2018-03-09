@@ -9,8 +9,6 @@ matrix:
     - python: "2.7"
       env: DJANGO_VERSION=1.8.18
     - python: "2.7"
-      env: DJANGO_VERSION=1.8.18
-    - python: "2.7"
       env: DJANGO_VERSION=1.9.13
     - python: "2.7"
       env: DJANGO_VERSION=1.10.7
@@ -19,13 +17,9 @@ matrix:
     - python: "3.4"
       env: DJANGO_VERSION=1.8.18
     - python: "3.4"
-      env: DJANGO_VERSION=1.8.18
-    - python: "3.4"
       env: DJANGO_VERSION=1.9.13
     - python: "3.4"
       env: DJANGO_VERSION=1.10.7
-    - python: "3.4"
-      env: DJANGO_VERSION=1.11.9
     - python: "3.4"
       env: DJANGO_VERSION=1.11.9
     - python: "3.4"
@@ -33,19 +27,13 @@ matrix:
     - python: "3.5"
       env: DJANGO_VERSION=1.8.18
     - python: "3.5"
-      env: DJANGO_VERSION=1.8.18
-    - python: "3.5"
       env: DJANGO_VERSION=1.9.13
     - python: "3.5"
       env: DJANGO_VERSION=1.10.7
     - python: "3.5"
-      env: DJANGO_VERSION=1.11.2
-    - python: "3.5"
       env: DJANGO_VERSION=1.11.9
     - python: "3.5"
       env: DJANGO_VERSION=2.0.1
-    - python: "3.6"
-      env: DJANGO_VERSION=1.8.18
     - python: "3.6"
       env: DJANGO_VERSION=1.8.18
     - python: "3.6"
@@ -55,11 +43,7 @@ matrix:
     - python: "3.6"
       env: DJANGO_VERSION=1.11.9
     - python: "3.6"
-      env: DJANGO_VERSION=1.11.9
-    - python: "3.6"
       env: DJANGO_VERSION=2.0.1
-before_script:
-  - export TZ=America/Los_Angeles
 before_install:
   - export DJANGO_SETTINGS_MODULE=tests.settings
 # Tell it the things it will need to install when it boots
