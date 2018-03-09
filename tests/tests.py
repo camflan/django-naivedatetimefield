@@ -1,3 +1,6 @@
+import datetime
+import pytz
+
 from django.test import TestCase
 
 from django.contrib.auth.models import User
@@ -58,7 +61,8 @@ class NaiveDateTimeFieldTestCase(TestCase):
 
         self.assertEqual(timezone.make_naive(obj.aware), obj.naive)
 
-        # deactivate the timezone and make sure we still have our same naive timestamp
+        # deactivate the timezone and make sure we still have our
+        # same naive timestamp
         timezone.deactivate()
 
         self.assertTrue(timezone.is_aware(obj.aware))
@@ -68,3 +72,44 @@ class NaiveDateTimeFieldTestCase(TestCase):
         self.assertEqual(obj.naive, los_angeles_local_now)
 
         self.assertNotEqual(timezone.make_naive(obj.aware), obj.naive)
+
+    def test_select_by_naive(self):
+        timezone.activate("America/Los_Angeles")
+
+        n = datetime.datetime(2018, 4, 1, 18, 0)
+        a = timezone.make_aware(n)
+
+        o = NaiveDateTimeTestModel.objects.create(
+            aware=a, naive=n
+        )
+
+        o.refresh_from_db()
+
+        find_with_aware_in_la_timezone = NaiveDateTimeTestModel.objects.filter(
+            aware__lt=(datetime.datetime(2018, 4, 1, 20, 0)
+                       .replace(tzinfo=timezone.get_current_timezone()))
+        ).count()
+
+        self.assertTrue(find_with_aware_in_la_timezone == 1)
+
+        find_with_naive_in_la_timezone = NaiveDateTimeTestModel.objects.filter(
+            naive__lt=datetime.datetime(2018, 4, 1, 20, 0)
+        ).count()
+
+        self.assertTrue(find_with_naive_in_la_timezone == 1)
+
+        timezone.activate(pytz.utc)
+
+        find_with_aware_in_utc = NaiveDateTimeTestModel.objects.filter(
+            aware__lt=(datetime.datetime(2018, 4, 1, 20, 0)
+                       .replace(tzinfo=timezone.get_current_timezone()))
+        ).count()
+
+        self.assertTrue(find_with_aware_in_utc == 0)
+
+        find_with_naive_in_utc = NaiveDateTimeTestModel.objects.filter(
+            naive__lt=datetime.datetime(2018, 4, 1, 20, 0)
+        ).count()
+
+        self.assertTrue(find_with_naive_in_utc == 1)
+
