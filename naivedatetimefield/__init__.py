@@ -18,6 +18,8 @@ class NaiveDateTimeField(models.DateField):
 
     def db_type(self, connection):
         if (connection.settings_dict['ENGINE'] in [
+                'django_prometheus.db.backends.postgresql',
+                'django_prometheus.db.backends.postgresql_psycopg2',
                 'django.db.backends.postgresql',
                 'django.db.backends.postgresql_psycopg2']):
             return "timestamp without time zone"
