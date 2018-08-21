@@ -12,17 +12,17 @@ clean:
 	rm -rf *.egg-info
 
 install-dev:
-	pip install -e .
+	pip3 install -e .
 
 install:
-	pip install .
+	pip3 install .
 
 uninstall:
-	pip uninstall .
+	pip3 uninstall .
 
 $(DIST_DIR): setup.cfg setup.py naivedatetimefield/**
-	python setup.py sdist
-	python setup.py bdist_wheel
+	python3 setup.py sdist
+	python3 setup.py bdist_wheel
 
 publish: setup.py $(DIST_DIR)
 	twine upload $(DIST_DIR)/*
