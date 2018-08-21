@@ -4,7 +4,6 @@ from django import forms
 from django.core import exceptions, checks
 
 from django.db import models
-from django.db.models.functions import TruncTime, TruncDate
 
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
@@ -166,6 +165,17 @@ class NaiveDateTimeField(models.DateField):
         return super(NaiveDateTimeField, self).formfield(**defaults)
 
 
-# register our field for the __time and __date lookups
-NaiveDateTimeField.register_lookup(TruncTime)
-NaiveDateTimeField.register_lookup(TruncDate)
+# try to register our field for the __time and __date lookups
+try:
+    from django.db.models.functions import TruncTime
+
+    NaiveDateTimeField.register_lookup(TruncTime)
+except ImportError:
+    pass
+
+try:
+    from django.db.models.functions import TruncDate
+
+    NaiveDateTimeField.register_lookup(TruncDate)
+except ImportError:
+    pass
