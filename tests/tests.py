@@ -3,25 +3,26 @@ import pytz
 
 from django.test import TestCase
 
+from django.db.models import F
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from .models import (NaiveDateTimeTestModel,
-                     NaiveDateTimeAutoNowAddModel,
-                     NaiveDateTimeAutoNowModel)
+from .models import (
+    NaiveDateTimeTestModel,
+    NaiveDateTimeAutoNowAddModel,
+    NaiveDateTimeAutoNowModel,
+)
 
 
 class NaiveDateTimeFieldTestCase(TestCase):
-    '''
+    """
     main test case for NaiveDateTimeField
-    '''
+    """
 
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_superuser(
-            username='supertester',
-            email='super@test.com',
-            password='testing12345'
+            username="supertester", email="super@test.com", password="testing12345"
         )
 
     def test_auto_now_add(self):
@@ -37,9 +38,9 @@ class NaiveDateTimeFieldTestCase(TestCase):
         self.assertTrue(timezone.is_naive(obj.naive))
 
     def test_add_los_angeles_local_timestamp(self):
-        '''
+        """
         activate a timezone that's not the default tz and is also not utc
-        '''
+        """
 
         timezone.activate("America/Los_Angeles")
 
@@ -52,8 +53,7 @@ class NaiveDateTimeFieldTestCase(TestCase):
         self.assertEqual(now, timezone.make_aware(los_angeles_local_now))
 
         obj = NaiveDateTimeTestModel.objects.create(
-            aware=now,
-            naive=los_angeles_local_now
+            aware=now, naive=los_angeles_local_now
         )
 
         self.assertTrue(timezone.is_aware(obj.aware))
@@ -79,15 +79,16 @@ class NaiveDateTimeFieldTestCase(TestCase):
         n = datetime.datetime(2018, 4, 1, 18, 0)
         a = timezone.make_aware(n)
 
-        o = NaiveDateTimeTestModel.objects.create(
-            aware=a, naive=n
-        )
+        o = NaiveDateTimeTestModel.objects.create(aware=a, naive=n)
 
         o.refresh_from_db()
 
         find_with_aware_in_la_timezone = NaiveDateTimeTestModel.objects.filter(
-            aware__lt=(datetime.datetime(2018, 4, 1, 20, 0)
-                       .replace(tzinfo=timezone.get_current_timezone()))
+            aware__lt=(
+                datetime.datetime(2018, 4, 1, 20, 0).replace(
+                    tzinfo=timezone.get_current_timezone()
+                )
+            )
         ).count()
 
         self.assertTrue(find_with_aware_in_la_timezone == 1)
@@ -101,8 +102,11 @@ class NaiveDateTimeFieldTestCase(TestCase):
         timezone.activate(pytz.utc)
 
         find_with_aware_in_utc = NaiveDateTimeTestModel.objects.filter(
-            aware__lt=(datetime.datetime(2018, 4, 1, 20, 0)
-                       .replace(tzinfo=timezone.get_current_timezone()))
+            aware__lt=(
+                datetime.datetime(2018, 4, 1, 20, 0).replace(
+                    tzinfo=timezone.get_current_timezone()
+                )
+            )
         ).count()
 
         self.assertTrue(find_with_aware_in_utc == 0)
@@ -112,4 +116,3 @@ class NaiveDateTimeFieldTestCase(TestCase):
         ).count()
 
         self.assertTrue(find_with_naive_in_utc == 1)
-

@@ -4,6 +4,7 @@ from django import forms
 from django.core import exceptions, checks
 
 from django.db import models
+from django.db.models.functions import TruncTime, TruncDate
 
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
@@ -17,11 +18,12 @@ class NaiveDateTimeField(models.DateField):
         return "NaiveDateTime"
 
     def db_type(self, connection):
-        if (connection.settings_dict['ENGINE'] in [
-                'django_prometheus.db.backends.postgresql',
-                'django_prometheus.db.backends.postgresql_psycopg2',
-                'django.db.backends.postgresql',
-                'django.db.backends.postgresql_psycopg2']):
+        if connection.settings_dict["ENGINE"] in [
+            "django_prometheus.db.backends.postgresql",
+            "django_prometheus.db.backends.postgresql_psycopg2",
+            "django.db.backends.postgresql",
+            "django.db.backends.postgresql_psycopg2",
+        ]:
             return "timestamp without time zone"
 
         return "datetime"
@@ -57,26 +59,26 @@ class NaiveDateTimeField(models.DateField):
         if lower <= value <= upper:
             return [
                 checks.Warning(
-                    'Fixed default value provided.',
-                    hint='It seems you set a fixed date / time / datetime '
-                         'value as default for this field. This may not be '
-                         'what you want. If you want to have the current date '
-                         'as default, use `django.utils.timezone.now`',
+                    "Fixed default value provided.",
+                    hint="It seems you set a fixed date / time / datetime "
+                    "value as default for this field. This may not be "
+                    "what you want. If you want to have the current date "
+                    "as default, use `django.utils.timezone.now`",
                     obj=self,
-                    id='fields.W161',
+                    id="fields.W161",
                 )
             ]
 
         return []
 
     def to_python(self, value):
-        '''
+        """
         This method was lifted from django's DateTimeField and then
         all TZ handling was removed
 
         It attempts to convert the value to python from least complex
         to most complex/slowest
-        '''
+        """
         if value is None:
             return value
         if isinstance(value, datetime.datetime):
@@ -90,9 +92,9 @@ class NaiveDateTimeField(models.DateField):
                 return parsed
         except ValueError:
             raise exceptions.ValidationError(
-                self.error_messages['invalid_datetime'],
-                code='invalid_datetime',
-                params={'value': value},
+                self.error_messages["invalid_datetime"],
+                code="invalid_datetime",
+                params={"value": value},
             )
 
         try:
@@ -101,21 +103,19 @@ class NaiveDateTimeField(models.DateField):
                 return datetime.datetime(parsed.year, parsed.month, parsed.day)
         except ValueError:
             raise exceptions.ValidationError(
-                self.error_messages['invalid_date'],
-                code='invalid_date',
-                params={'value': value},
+                self.error_messages["invalid_date"],
+                code="invalid_date",
+                params={"value": value},
             )
 
         raise exceptions.ValidationError(
-            self.error_messages['invalid'],
-            code='invalid',
-            params={'value': value},
+            self.error_messages["invalid"], code="invalid", params={"value": value}
         )
 
     def get_prep_value(self, value):
-        '''
+        """
         Ensure we have a naive datetime ready for insertion
-        '''
+        """
         value = super(NaiveDateTimeField, self).get_prep_value(value)
         value = self.to_python(value)
 
@@ -132,17 +132,18 @@ class NaiveDateTimeField(models.DateField):
         if value is None:
             return None
 
-        if hasattr(value, 'resolve_expression'):
+        if hasattr(value, "resolve_expression"):
             return value
 
-        if connection.settings_dict['ENGINE'] == 'django.db.backends.mysql':
+        if connection.settings_dict["ENGINE"] == "django.db.backends.mysql":
             return str(value)
 
-        elif connection.settings_dict['ENGINE'] == 'django.db.backends.sqlite3':
+        elif connection.settings_dict["ENGINE"] == "django.db.backends.sqlite3":
             return str(value)
 
-        elif connection.settings_dict['ENGINE'] == 'django.db.backends.oracle':
+        elif connection.settings_dict["ENGINE"] == "django.db.backends.oracle":
             from django.db.backends.oracle.utils import Oracle_datetime
+
             return Oracle_datetime.from_datetime(value)
 
         return value
@@ -157,9 +158,14 @@ class NaiveDateTimeField(models.DateField):
 
     def value_to_string(self, obj):
         val = self.value_from_object(obj)
-        return '' if val is None else val.isoformat()
+        return "" if val is None else val.isoformat()
 
     def formfield(self, **kwargs):
-        defaults = {'form_class': forms.DateTimeField}
+        defaults = {"form_class": forms.DateTimeField}
         defaults.update(kwargs)
         return super(NaiveDateTimeField, self).formfield(**defaults)
+
+
+# register our field for the __time and __date lookups
+NaiveDateTimeField.register_lookup(TruncTime)
+NaiveDateTimeField.register_lookup(TruncDate)
