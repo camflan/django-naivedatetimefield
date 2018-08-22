@@ -37,6 +37,36 @@ class NaiveDateTimeFieldTestCase(TestCase):
         self.assertTrue(timezone.is_aware(obj.aware))
         self.assertTrue(timezone.is_naive(obj.naive))
 
+    def xtest_time_lookup(self):
+        """
+        This should test that __time lookups work properly on naive datetime fields
+        """
+        timezone.activate("America/Los_Angeles")
+
+        n = datetime.datetime(2018, 4, 1, 18, 0)
+        a = timezone.make_aware(n)
+
+        o = NaiveDateTimeTestModel.objects.create(aware=a, naive=n)
+
+        o.refresh_from_db()
+
+        results = NaiveDateTimeTestModel.objects.annotate(
+            hour=F("naive__time__hour")
+        ).filter(naive__time__hour__gte=1)
+
+        for ndt in NaiveDateTimeTestModel.objects.all():
+            print(ndt.id, ndt.naive)
+
+        print(results, results.query)
+
+        self.assertTrue(results == 1)
+
+    def xtest_date_lookup(self):
+        """
+        This should test that __date lookups work properly on naive datetime fields
+        """
+        pass
+
     def test_add_los_angeles_local_timestamp(self):
         """
         activate a timezone that's not the default tz and is also not utc

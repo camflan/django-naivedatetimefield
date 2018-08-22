@@ -167,15 +167,39 @@ class NaiveDateTimeField(models.DateField):
 
 # try to register our field for the __time and __date lookups
 try:
-    from django.db.models.functions import TruncTime
+    from django.db.models import TimeField
+    from django.db.models.functions.datetime import TruncBase
 
-    NaiveDateTimeField.register_lookup(TruncTime)
+    class TruncTimeNaive(TruncBase):
+        kind = "time"
+        lookup_name = "time"
+        output_field = TimeField()
+
+    def as_sql(self, compiler, connection):
+        # Cast to date rather than truncate to date.
+        lhs, lhs_params = compiler.compile(self.lhs)
+        sql = connection.ops.datetime_cast_time_sql(lhs, None)
+        return sql, lhs_params
+
+    NaiveDateTimeField.register_lookup(TruncTimeNaive)
 except ImportError:
     pass
 
 try:
-    from django.db.models.functions import TruncDate
+    from django.db.models import DateField
+    from django.db.models.functions.datetime import TruncBase
 
-    NaiveDateTimeField.register_lookup(TruncDate)
+    class TruncDateNaive(TruncBase):
+        kind = "date"
+        lookup_name = "date"
+        output_field = DateField()
+
+        def as_sql(self, compiler, connection):
+            # Cast to date rather than truncate to date.
+            lhs, lhs_params = compiler.compile(self.lhs)
+            sql = connection.ops.datetime_cast_date_sql(lhs, None)
+            return sql, lhs_params
+
+    NaiveDateTimeField.register_lookup(TruncDateNaive)
 except ImportError:
     pass
