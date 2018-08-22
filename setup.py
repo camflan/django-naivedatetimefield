@@ -5,7 +5,7 @@ from setuptools import find_packages
 setup(
     name="django-naivedatetimefield",
     packages=find_packages(),
-    version="1.2.1",
+    version="1.3.0",
     author=u"Camron Flanders",
     author_email=u"me@camronflanders.com",
     url="https://github.com/camflan/django-naivedatetimefield/",
