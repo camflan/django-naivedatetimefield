@@ -25,7 +25,7 @@ class NaiveDateTimeField(models.DateField):
         ]:
             return "timestamp without time zone"
 
-        return "datetime"
+        raise NotImplementedError("Only postgresql is supported at this time.")
 
     def _check_fix_default_value(self):
         """
@@ -175,11 +175,16 @@ try:
         lookup_name = "time"
         output_field = TimeField()
 
-    def as_sql(self, compiler, connection):
-        # Cast to date rather than truncate to date.
-        lhs, lhs_params = compiler.compile(self.lhs)
-        sql = connection.ops.datetime_cast_time_sql(lhs, None)
-        return sql, lhs_params
+        def as_sql(self, compiler, connection):
+            # Cast to date rather than truncate to date.
+            lhs, lhs_params = compiler.compile(self.lhs)
+
+            # this is a postgresql only compatible cast, replacing
+            # a call to connection.ops.datetime_cast_time_sql that
+            # wouldn't work with None tzinfo
+            sql = "(%s)::time" % lhs
+
+            return sql, lhs_params
 
     NaiveDateTimeField.register_lookup(TruncTimeNaive)
 except ImportError:
@@ -197,7 +202,12 @@ try:
         def as_sql(self, compiler, connection):
             # Cast to date rather than truncate to date.
             lhs, lhs_params = compiler.compile(self.lhs)
-            sql = connection.ops.datetime_cast_date_sql(lhs, None)
+
+            # this is a postgresql only compatible cast, replacing
+            # a call to connection.ops.datetime_cast_date_sql that
+            # wouldn't work with None tzinfo
+            sql = "(%s)::date" % lhs
+
             return sql, lhs_params
 
     NaiveDateTimeField.register_lookup(TruncDateNaive)
