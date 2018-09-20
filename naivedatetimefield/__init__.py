@@ -175,11 +175,11 @@ try:
         lookup_name = "time"
         output_field = TimeField()
 
-    def as_sql(self, compiler, connection):
-        # Cast to date rather than truncate to date.
-        lhs, lhs_params = compiler.compile(self.lhs)
-        sql = connection.ops.datetime_cast_time_sql(lhs, None)
-        return sql, lhs_params
+        def as_sql(self, compiler, connection):
+            # Cast to date rather than truncate to date.
+            lhs, lhs_params = compiler.compile(self.lhs)
+            sql = connection.ops.datetime_cast_time_sql(lhs, None)
+            return sql, lhs_params
 
     NaiveDateTimeField.register_lookup(TruncTimeNaive)
 except ImportError:
