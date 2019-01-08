@@ -28,7 +28,11 @@ MIDDLEWARE = MIDDLEWARE_CLASSES
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        "NAME": os.environ.get("DJANGO_DATABASE_NAME_POSTGRES", "naivedatetimefield"),
+        "USER": os.environ.get("DJANGO_DATABASE_USER_POSTGRES", 'postgres'),
+        "PASSWORD": os.environ.get("DJANGO_DATABASE_PASSWORD_POSTGRES", ""),
+        "HOST": os.environ.get("DJANGO_DATABASE_HOST_POSTGRES", ""),
     }
 }
 
