@@ -1,12 +1,15 @@
 import datetime
+from unittest import skipIf
+
+import django
 import pytz
-
-from django.test import TestCase
-
-from django.db.models import F
+from django import db
 from django.contrib.auth.models import User
+from django.db.models import functions
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
+import naivedatetimefield
 from .models import (
     NaiveDateTimeTestModel,
     NaiveDateTimeAutoNowAddModel,
@@ -37,7 +40,42 @@ class NaiveDateTimeFieldTestCase(TestCase):
         self.assertTrue(timezone.is_aware(obj.aware))
         self.assertTrue(timezone.is_naive(obj.naive))
 
-    def xtest_time_lookup(self):
+    def test_timezones_ignored(self):
+
+        naive = datetime.datetime(2018, 4, 1, 18, 0)
+        o1 = NaiveDateTimeTestModel.objects.create(
+            naive=naive,
+            aware=timezone.make_aware(naive),
+        )
+
+        with timezone.override('Australia/Melbourne'):
+            o2 = NaiveDateTimeTestModel.objects.create(
+                naive=naive,
+                aware=timezone.make_aware(naive),
+            )
+            o1.refresh_from_db()
+            o2.refresh_from_db()
+
+        self.assertNotEqual(o1.aware, o2.aware)
+        self.assertEqual(o1.naive, naive)
+        self.assertEqual(o2.naive, naive)
+
+        with timezone.override('Australia/Adelaide'):
+            o1.refresh_from_db()
+            o2.refresh_from_db()
+            self.assertNotEqual(o1.aware, o2.aware)
+            self.assertEqual(o1.naive, naive)
+            self.assertEqual(o2.naive, naive)
+
+        with override_settings(USE_TZ=False):
+            o1.refresh_from_db()
+            o2.refresh_from_db()
+            self.assertNotEqual(o1.aware, o2.aware)
+            self.assertEqual(o1.naive, naive)
+            self.assertEqual(o2.naive, naive)
+
+    @skipIf(django.VERSION < (1, 11), "date transforms and lookups unavailable before Django 1.11")
+    def test_time_lookup(self):
         """
         This should test that __time lookups work properly on naive datetime fields
         """
@@ -50,22 +88,182 @@ class NaiveDateTimeFieldTestCase(TestCase):
 
         o.refresh_from_db()
 
-        results = NaiveDateTimeTestModel.objects.annotate(
-            hour=F("naive__time__hour")
-        ).filter(naive__time__hour__gte=1)
+        results = NaiveDateTimeTestModel.objects.filter(naive__time__hour__gte=1)
 
-        for ndt in NaiveDateTimeTestModel.objects.all():
-            print(ndt.id, ndt.naive)
+        self.assertEqual(results.count(), 1)
 
-        print(results, results.query)
-
-        self.assertTrue(results == 1)
-
-    def xtest_date_lookup(self):
+    @skipIf(django.VERSION < (1, 11), "date transforms and lookups unavailable before Django 1.11")
+    def test_date_trunc(self):
         """
-        This should test that __date lookups work properly on naive datetime fields
+        Test that date truncating works regardless of active timezone.
         """
-        pass
+        timezone.activate("Australia/Adelaide")
+        n = datetime.datetime(2017, 12, 31, 20, 10, 30, 123456)
+        a = timezone.make_aware(n)
+        o = NaiveDateTimeTestModel.objects.create(aware=a, naive=n)
+        o.refresh_from_db()
+
+        def query_truncations(module):
+            return NaiveDateTimeTestModel.objects.annotate(
+                year=getattr(module, 'TruncYear')("naive"),
+                mon=getattr(module, 'TruncMonth')("naive"),
+                day=getattr(module, 'TruncDay')("naive"),
+                hour=getattr(module, 'TruncHour')("naive"),
+                min=getattr(module, 'TruncMinute')("naive"),
+                sec=getattr(module, 'TruncSecond')("naive"),
+                date=getattr(module, 'TruncDate')("naive"),
+                time=getattr(module, 'TruncTime')("naive"),
+            ).all()[0]
+
+        self.assertEqual(NaiveDateTimeTestModel.objects.count(), 1)
+
+        r = query_truncations(naivedatetimefield)
+        self.assertEqual(
+            [r.year, r.mon, r.day, r.hour, r.min, r.sec, r.date, r.time],
+            [
+                datetime.datetime(2017, 1, 1),
+                datetime.datetime(2017, 12, 1),
+                datetime.datetime(2017, 12, 31),
+                datetime.datetime(2017, 12, 31, 20),
+                datetime.datetime(2017, 12, 31, 20, 10),
+                datetime.datetime(2017, 12, 31, 20, 10, 30),
+                datetime.date(2017, 12, 31),
+                datetime.time(20, 10, 30, 123456),
+            ]
+        )
+
+        with self.assertRaisesRegex(TypeError, r"Django's \w+ cannot be used with a NaiveDateTimeField"):
+            query_truncations(functions)
+
+    @skipIf(django.VERSION < (1, 11), "date transforms and lookups unavailable before Django 1.11")
+    def test_date_transforms(self):
+        """
+        Test that date transforms work regardless of active timezone.
+        """
+        timezone.activate('utc')
+
+        # Create some borderline datetimes, hard-coded for easier visualisation/verification
+        # >>> dt = datetime.datetime(2017, 1, 1, 10, 30)
+        # >>> for i in range(12): repr(dt + timedelta(days=121*i, hours=13*i, minutes=4*i, seconds=i))
+        datetimes = [
+            datetime.datetime(2017,  1,  1, 10, 30,  0),
+            datetime.datetime(2017,  5,  2, 23, 34,  1),
+            datetime.datetime(2017,  9,  1, 12, 38,  2),
+            datetime.datetime(2018,  1,  1,  1, 42,  3),
+            datetime.datetime(2018,  5,  2, 14, 46,  4),
+            datetime.datetime(2018,  9,  1,  3, 50,  5),
+            datetime.datetime(2018, 12, 31, 16, 54,  6),
+            datetime.datetime(2019,  5,  2,  5, 58,  7),
+            datetime.datetime(2019,  8, 31, 19,  2,  8),
+            datetime.datetime(2019, 12, 31,  8,  6,  9),
+            datetime.datetime(2020,  4, 30, 21, 10, 10),
+            datetime.datetime(2020,  8, 30, 10, 14, 11),
+        ]
+
+        NaiveDateTimeTestModel.objects.bulk_create(
+            NaiveDateTimeTestModel(aware=timezone.make_aware(dt), naive=dt)
+            for dt in datetimes
+        )
+
+        def count_filter(**kwargs):
+            return NaiveDateTimeTestModel.objects.filter(**kwargs).count()
+
+        def test_in_timezone(tz):
+            with timezone.override(tz):
+                self.assertEqual(count_filter(naive__year__lt=2018), 3)
+                self.assertEqual(count_filter(naive__year__lte=2018), 7)
+                self.assertEqual(count_filter(naive__year__gt=2018), 5)
+                self.assertEqual(count_filter(naive__year__gte=2018), 9)
+                self.assertEqual(count_filter(naive__year=2018), 4)
+
+                self.assertEqual(count_filter(naive__month__lt=5), 3)
+                self.assertEqual(count_filter(naive__month__lte=5), 6)
+                self.assertEqual(count_filter(naive__month__gt=5), 6)
+                self.assertEqual(count_filter(naive__month__gte=5), 9)
+                self.assertEqual(count_filter(naive__month=5), 3)
+
+                self.assertEqual(count_filter(naive__day__lt=2), 4)
+                self.assertEqual(count_filter(naive__day__lte=2), 7)
+                self.assertEqual(count_filter(naive__day__gt=2), 5)
+                self.assertEqual(count_filter(naive__day__gte=2), 8)
+                self.assertEqual(count_filter(naive__day=2), 3)
+
+                self.assertEqual(count_filter(naive__hour__lt=12), 6)
+                self.assertEqual(count_filter(naive__hour__lte=12), 7)
+                self.assertEqual(count_filter(naive__hour__gt=12), 5)
+                self.assertEqual(count_filter(naive__hour__gte=12), 6)
+                self.assertEqual(count_filter(naive__hour=12), 1)
+
+                self.assertEqual(count_filter(naive__minute__lt=30), 4)
+                self.assertEqual(count_filter(naive__minute__lte=30), 5)
+                self.assertEqual(count_filter(naive__minute__gt=30), 7)
+                self.assertEqual(count_filter(naive__minute__gte=30), 8)
+                self.assertEqual(count_filter(naive__minute=30), 1)
+
+                self.assertEqual(count_filter(naive__second__lt=6), 6)
+                self.assertEqual(count_filter(naive__second__lte=6), 7)
+                self.assertEqual(count_filter(naive__second__gt=6), 5)
+                self.assertEqual(count_filter(naive__second__gte=6), 6)
+                self.assertEqual(count_filter(naive__second=6), 1)
+
+                self.assertEqual(count_filter(naive__week__lt=30), 7)
+                self.assertEqual(count_filter(naive__week__lte=30), 7)
+                self.assertEqual(count_filter(naive__week__gt=30), 5)
+                self.assertEqual(count_filter(naive__week__gte=30), 5)
+                self.assertEqual(count_filter(naive__week=30), 0)
+
+                self.assertEqual(count_filter(naive__week_day__lt=4), 6)
+                self.assertEqual(count_filter(naive__week_day__lte=4), 7)
+                self.assertEqual(count_filter(naive__week_day__gt=4), 5)
+                self.assertEqual(count_filter(naive__week_day__gte=4), 6)
+                self.assertEqual(count_filter(naive__week_day=4), 1)
+
+                self.assertEqual(count_filter(naive__date__lt=datetime.date(2018, 12, 31)), 6)
+                self.assertEqual(count_filter(naive__date__lte=datetime.date(2018, 12, 31)), 7)
+                self.assertEqual(count_filter(naive__date__gt=datetime.date(2018, 12, 31)), 5)
+                self.assertEqual(count_filter(naive__date__gte=datetime.date(2018, 12, 31)), 6)
+                self.assertEqual(count_filter(naive__date=datetime.date(2018, 12, 31)), 1)
+
+                if db.connection.vendor != 'mysql':  # known bug in Django's mysql date handling
+                    self.assertEqual(count_filter(naive__time__lt=datetime.time(10, 30, 0)), 5)
+                    self.assertEqual(count_filter(naive__time__lte=datetime.time(10, 30, 0)), 6)
+                    self.assertEqual(count_filter(naive__time__gt=datetime.time(10, 30, 0)), 6)
+                    self.assertEqual(count_filter(naive__time__gte=datetime.time(10, 30, 0)), 7)
+                    self.assertEqual(count_filter(naive__time=datetime.time(10, 30, 0)), 1)
+
+        # Test in some out-there timezones
+        test_in_timezone('utc')
+        test_in_timezone('Pacific/Chatham')  # +12:45/+13:45
+        test_in_timezone('Pacific/Marquesas')  # -09:30
+
+    @skipIf(django.VERSION < (1, 11), "date transforms and lookups unavailable before Django 1.11")
+    def test_date_extract_annotations(self):
+        """
+        Test that date truncating works regardless of active timezone.
+        """
+        timezone.activate("Australia/Adelaide")
+        n = datetime.datetime(2017, 12, 31, 20, 10, 30, 123456)
+        a = timezone.make_aware(n)
+        o = NaiveDateTimeTestModel.objects.create(aware=a, naive=n)
+        o.refresh_from_db()
+
+        def query_transforms(module):
+            return NaiveDateTimeTestModel.objects.annotate(
+                year=getattr(module, 'ExtractYear')("naive"),
+                mon=getattr(module, 'ExtractMonth')("naive"),
+                day=getattr(module, 'ExtractDay')("naive"),
+                hour=getattr(module, 'ExtractHour')("naive"),
+                min=getattr(module, 'ExtractMinute')("naive"),
+                sec=getattr(module, 'ExtractSecond')("naive"),
+                week=getattr(module, 'ExtractWeek')("naive"),
+                dow=getattr(module, 'ExtractWeekDay')("naive"),
+            )[0]
+
+        r = query_transforms(naivedatetimefield)
+        self.assertEqual(
+            [r.year, r.mon, r.day, r.hour, r.min, r.sec, r.week, r.dow],
+            [2017, 12, 31, 20, 10, 30, 52, 1],
+        )
 
     def test_add_los_angeles_local_timestamp(self):
         """

@@ -6,14 +6,49 @@ language: python
 # List the versions of Python you'd like to test against
 services:
   - postgresql
+  - mysql
 env:
   global:
     - DJANGO_SETTINGS_MODULE=tests.settings
   matrix:
-    - DJANGO_VERSION=1.8.19
-    - DJANGO_VERSION=1.9.13
-    - DJANGO_VERSION=1.10.8
-    - DJANGO_VERSION=1.11.18
+    - DJANGO_VERSION=1.8.19 DB=mysql
+    - DJANGO_VERSION=1.8.19 DB=postgres
+    - DJANGO_VERSION=1.8.19 DB=sqlite
+    - DJANGO_VERSION=1.9.13 DB=mysql
+    - DJANGO_VERSION=1.9.13 DB=postgres
+    - DJANGO_VERSION=1.9.13 DB=sqlite
+    - DJANGO_VERSION=1.10.8 DB=mysql
+    - DJANGO_VERSION=1.10.8 DB=postgres
+    - DJANGO_VERSION=1.10.8 DB=sqlite
+    - DJANGO_VERSION=1.11.18 DB=mysql
+    - DJANGO_VERSION=1.11.18 DB=postgres
+    - DJANGO_VERSION=1.11.18 DB=sqlite
+    - DJANGO_VERSION=2.0.10 DB=mysql
+    - DJANGO_VERSION=2.0.10 DB=postgres
+    - DJANGO_VERSION=2.0.10 DB=sqlite
+    - DJANGO_VERSION=2.1.5 DB=mysql
+    - DJANGO_VERSION=2.1.5 DB=postgres
+    - DJANGO_VERSION=2.1.5 DB=sqlite
+matrix:
+  exclude:
+     - python: "2.7"
+       env: DJANGO_VERSION=2.0.10 DB=mysql
+     - python: "2.7"
+       env: DJANGO_VERSION=2.0.10 DB=sqlite
+     - python: "2.7"
+       env: DJANGO_VERSION=2.0.10 DB=postgres
+     - python: "2.7"
+       env: DJANGO_VERSION=2.1.5 DB=mysql
+     - python: "2.7"
+       env: DJANGO_VERSION=2.1.5 DB=sqlite
+     - python: "2.7"
+       env: DJANGO_VERSION=2.1.5 DB=postgres
+     - python: "3.4"
+       env: DJANGO_VERSION=2.1.5 DB=mysql
+     - python: "3.4"
+       env: DJANGO_VERSION=2.1.5 DB=sqlite
+     - python: "3.4"
+       env: DJANGO_VERSION=2.1.5 DB=postgres
 python:
   - "2.7"
   - "3.4"
@@ -21,14 +56,14 @@ python:
   - "3.6"
 # Tell it the things it will need to install when it boots
 install:
- - pip install -q pytz coveralls flake8 psycopg2
- - pip install -q "Django==$DJANGO_VERSION"
- - pip install -e .
+  - pip install -q pytz coveralls flake8 psycopg2 mysqlclient
+  - pip install -q "Django==$DJANGO_VERSION"
+  - pip install -e .
 # Tell Travis how to run the test script itself
 before_script:
-  - psql -c 'create database naivedatetimefield;' -U postgres
+  - mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -u root mysql
 script:
   - flake8 naivedatetimefield/
   - coverage run --parallel-mode --source=naivedatetimefield runtests.py
   - coverage combine
-after_success: coveralls
+# after_success: coveralls

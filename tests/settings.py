@@ -26,15 +26,28 @@ MIDDLEWARE_CLASSES = (
 
 MIDDLEWARE = MIDDLEWARE_CLASSES
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+AVAILABLE_DATABASES = {
+    "sqlite": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ":memory:",
+    },
+    "postgres": {
+        "ENGINE": "django.db.backends.postgresql_psycopg2",
         "NAME": os.environ.get("DJANGO_DATABASE_NAME_POSTGRES", "naivedatetimefield"),
         "USER": os.environ.get("DJANGO_DATABASE_USER_POSTGRES", 'postgres'),
         "PASSWORD": os.environ.get("DJANGO_DATABASE_PASSWORD_POSTGRES", ""),
         "HOST": os.environ.get("DJANGO_DATABASE_HOST_POSTGRES", ""),
-    }
+    },
+    "mysql": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": os.environ.get("DJANGO_DATABASE_NAME_MYSQL", "naivedatetimefield"),
+        "USER": os.environ.get("DJANGO_DATABASE_USER_MYSQL", 'root'),
+        "PASSWORD": os.environ.get("DJANGO_DATABASE_PASSWORD_MYSQL", ""),
+        "HOST": os.environ.get("DJANGO_DATABASE_HOST_MYSQL", ""),
+    },
 }
+
+DATABASES = {"default": AVAILABLE_DATABASES[os.environ.get("DB", "postgres")]}
 
 CACHES = {
     'default': {
@@ -68,3 +81,29 @@ TEMPLATES = [
         },
     },
 ]
+
+LOGGING = {
+    'disable_existing_loggers': False,
+    'version': 1,
+    'handlers': {
+        'console': {
+            # logging handler that outputs log messages to terminal
+            'class': 'logging.StreamHandler',
+            'level': 'DEBUG', # message level to be written to console
+        },
+    },
+    'loggers': {
+        '': {
+            # this sets root level logger to log debug and higher level
+            # logs to console. All other loggers inherit settings from
+            # root level logger.
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False, # this tells logger to send logging message
+                                # to its parent (will send if set to True)
+        },
+        'django.db': {
+            # django also has database level logging
+        },
+    },
+}
