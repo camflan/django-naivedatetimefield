@@ -1,7 +1,6 @@
 import datetime
 from unittest import skipIf
 
-import django
 import pytz
 from django import db
 from django.contrib.auth.models import User
@@ -76,7 +75,6 @@ class NaiveDateTimeFieldTestCase(TestCase):
             self.assertEqual(o1.naive, naive)
             self.assertEqual(o2.naive, naive)
 
-    @skipIf(django.VERSION < (1, 11), "date transforms and lookups unavailable before Django 1.11")
     def test_time_lookup(self):
         """
         This should test that __time lookups work properly on naive datetime fields
@@ -94,7 +92,6 @@ class NaiveDateTimeFieldTestCase(TestCase):
 
         self.assertEqual(results.count(), 1)
 
-    @skipIf(django.VERSION < (1, 11), "date transforms and lookups unavailable before Django 1.11")
     def test_date_trunc(self):
         """
         Test that date truncating works regardless of active timezone.
@@ -137,7 +134,6 @@ class NaiveDateTimeFieldTestCase(TestCase):
         with self.assertRaisesRegex(TypeError, r"Django's \w+ cannot be used with a NaiveDateTimeField"):
             query_truncations(functions)
 
-    @skipIf(django.VERSION < (1, 11), "date transforms and lookups unavailable before Django 1.11")
     def test_date_transforms(self):
         """
         Test that date transforms work regardless of active timezone.
@@ -238,7 +234,6 @@ class NaiveDateTimeFieldTestCase(TestCase):
         test_in_timezone('Pacific/Chatham')  # +12:45/+13:45
         test_in_timezone('Pacific/Marquesas')  # -09:30
 
-    @skipIf(django.VERSION < (1, 11), "date transforms and lookups unavailable before Django 1.11")
     def test_date_extract_annotations(self):
         """
         Test that date truncating works regardless of active timezone.

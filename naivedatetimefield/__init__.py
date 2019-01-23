@@ -2,18 +2,15 @@ import datetime
 import sys
 import warnings
 
-import django
 import pytz
 from django.core import exceptions, checks
 from django.db.models import DateTimeField, Func, Value
+from django.db.models.functions.datetime import TruncBase, Extract, ExtractYear
+from django.db.models.lookups import Exact, GreaterThan, GreaterThanOrEqual, \
+    LessThan, LessThanOrEqual
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.translation import gettext_lazy as _
-
-if django.VERSION >= (1, 11):
-    from django.db.models.functions.datetime import TruncBase, Extract, ExtractYear
-    from django.db.models.lookups import Exact, GreaterThan, GreaterThanOrEqual, \
-        LessThan, LessThanOrEqual
 
 
 class NaiveDateTimeField(DateTimeField):
@@ -123,7 +120,7 @@ class NaiveDateTimeField(DateTimeField):
         return super(DateTimeField, self).get_prep_value(value)
 
     def from_db_value(self, value, expression, connection, context):
-        is_truncbase = django.VERSION >= (1, 11) and isinstance(expression, TruncBase)
+        is_truncbase = isinstance(expression, TruncBase)
         if is_truncbase and not isinstance(expression, NaiveAsSQLMixin):
             raise TypeError(
                 "Django's %s cannot be used with a NaiveDateTimeField"
@@ -134,8 +131,6 @@ class NaiveDateTimeField(DateTimeField):
                 return timezone.make_naive(value, pytz.utc)
             return value
         if timezone.is_aware(value):
-            if django.VERSION < (1, 9):
-                return timezone.make_naive(value, pytz.utc)
             return timezone.make_naive(value, connection.timezone)
         return value
 
@@ -210,33 +205,32 @@ class AtTimeZone(Func):
 _monkeypatching = False
 
 
-if django.VERSION >= (1, 11):
-    _this_module = sys.modules[__name__]
-    _db_functions = sys.modules['django.db.models.functions']
-    _lookups = set(DateTimeField.get_lookups().values())
-    _patch_classes = [
-        (Extract, [NaiveAsSQLMixin, NaiveTimezoneMixin]),
-        (TruncBase, [NaiveAsSQLMixin, NaiveTimezoneMixin, NaiveConvertValueMixin]),
-    ]
-    for original, mixins in _patch_classes:
-        for cls in original.__subclasses__():
+_this_module = sys.modules[__name__]
+_db_functions = sys.modules['django.db.models.functions']
+_lookups = set(DateTimeField.get_lookups().values())
+_patch_classes = [
+    (Extract, [NaiveAsSQLMixin, NaiveTimezoneMixin]),
+    (TruncBase, [NaiveAsSQLMixin, NaiveTimezoneMixin, NaiveConvertValueMixin]),
+]
+for original, mixins in _patch_classes:
+    for cls in original.__subclasses__():
 
-            bases = tuple(mixins) + (cls,)
-            naive_cls = type(cls.__name__, bases, {})
+        bases = tuple(mixins) + (cls,)
+        naive_cls = type(cls.__name__, bases, {})
 
-            if _monkeypatching:
-                setattr(_db_functions, cls.__name__, naive_cls)
+        if _monkeypatching:
+            setattr(_db_functions, cls.__name__, naive_cls)
 
-            if cls in _lookups:
-                NaiveDateTimeField.register_lookup(naive_cls)
+        if cls in _lookups:
+            NaiveDateTimeField.register_lookup(naive_cls)
 
-                # Year lookups don't need special handling with naive fields
-                if cls is ExtractYear:
-                    naive_cls.register_lookup(Exact)
-                    naive_cls.register_lookup(GreaterThan)
-                    naive_cls.register_lookup(GreaterThanOrEqual)
-                    naive_cls.register_lookup(LessThan)
-                    naive_cls.register_lookup(LessThanOrEqual)
+            # Year lookups don't need special handling with naive fields
+            if cls is ExtractYear:
+                naive_cls.register_lookup(Exact)
+                naive_cls.register_lookup(GreaterThan)
+                naive_cls.register_lookup(GreaterThanOrEqual)
+                naive_cls.register_lookup(LessThan)
+                naive_cls.register_lookup(LessThanOrEqual)
 
-            # Add an attribute to this module so these functions can be imported
-            setattr(_this_module, cls.__name__, naive_cls)
+        # Add an attribute to this module so these functions can be imported
+        setattr(_this_module, cls.__name__, naive_cls)

@@ -11,9 +11,6 @@ env:
   global:
     - DJANGO_SETTINGS_MODULE=tests.settings
   matrix:
-    - DJANGO_VERSION=1.8.19 DB=mysql
-    - DJANGO_VERSION=1.8.19 DB=postgres
-    - DJANGO_VERSION=1.8.19 DB=sqlite
     - DJANGO_VERSION=1.11.18 DB=mysql
     - DJANGO_VERSION=1.11.18 DB=postgres
     - DJANGO_VERSION=1.11.18 DB=sqlite
