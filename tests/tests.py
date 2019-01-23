@@ -5,11 +5,13 @@ import django
 import pytz
 from django import db
 from django.contrib.auth.models import User
-from django.db.models import functions
+from django.db import connection
+from django.db.models import functions, Value
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
 import naivedatetimefield
+from naivedatetimefield import AtTimeZone
 from .models import (
     NaiveDateTimeTestModel,
     NaiveDateTimeAutoNowAddModel,
@@ -344,3 +346,138 @@ class NaiveDateTimeFieldTestCase(TestCase):
         ).count()
 
         self.assertTrue(find_with_naive_in_utc == 1)
+
+
+def identity(v):
+    return v
+
+
+@skipIf(connection.vendor != "postgresql", "AtTimeZone is only supported in PostgreSQL")
+class AtTimeZoneTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.now = datetime.datetime(2019, 1, 15, 10)
+        cls.perth_tz = pytz.timezone('Australia/Perth')
+        cls.sydney_tz = pytz.timezone('Australia/Sydney')
+        cls.adelaide_tz = pytz.timezone('Australia/Adelaide')
+
+        cls.perth = NaiveDateTimeTestModel.objects.create(
+            naive=cls.now,
+            aware=timezone.make_aware(cls.now, cls.perth_tz),
+            timezone='Australia/Perth',
+        )
+
+        cls.sydney = NaiveDateTimeTestModel.objects.create(
+            naive=cls.now,
+            aware=timezone.make_aware(cls.now, cls.sydney_tz),
+            timezone='Australia/Sydney',
+        )
+
+    def test_annotate(self):
+        self.assertQuerysetEqual(
+            NaiveDateTimeTestModel.objects.annotate(
+                naive_converted=AtTimeZone('aware', 'timezone'),
+                aware_converted=AtTimeZone('naive', 'timezone'),
+            ).values_list('naive_converted', 'aware_converted'),
+            [
+                (self.now, timezone.make_aware(self.now, self.perth_tz)),
+                (self.now, timezone.make_aware(self.now, self.sydney_tz)),
+            ],
+            transform=identity,
+        )
+
+    def test_db_aware_db_timezone(self):
+        self.assertQuerysetEqual(
+            NaiveDateTimeTestModel.objects.filter(
+                naive=AtTimeZone(
+                    'aware',
+                    'timezone',
+                )
+            ),
+            [self.perth, self.sydney],
+            transform=identity,
+        )
+
+    def test_db_aware_value_timezone(self):
+        self.assertQuerysetEqual(
+            NaiveDateTimeTestModel.objects.filter(
+                naive__lt=AtTimeZone(
+                    'aware',
+                    Value('Australia/Adelaide'),
+                )
+            ),
+            [self.perth],
+            transform=identity,
+        )
+
+    def test_db_naive_db_timezone(self):
+        self.assertQuerysetEqual(
+            NaiveDateTimeTestModel.objects.filter(
+                aware=AtTimeZone(
+                    'naive',
+                    'timezone',
+                )
+            ),
+            [self.perth, self.sydney],
+            transform=identity,
+        )
+
+    def test_db_naive_value_timezone(self):
+        self.assertQuerysetEqual(
+            NaiveDateTimeTestModel.objects.filter(
+                aware__lt=AtTimeZone(
+                    'naive',
+                    Value('Australia/Adelaide'),
+                )
+            ),
+            [self.sydney],
+            transform=identity,
+        )
+
+    def test_value_aware_db_timezone(self):
+        self.assertQuerysetEqual(
+            NaiveDateTimeTestModel.objects.filter(
+                naive__lt=AtTimeZone(
+                    timezone.make_aware(self.now, self.adelaide_tz),
+                    'timezone',
+                )
+            ),
+            [self.sydney],
+            transform=identity,
+        )
+
+    def test_value_aware_value_timezone(self):
+        self.assertQuerysetEqual(
+            NaiveDateTimeTestModel.objects.filter(
+                naive=AtTimeZone(
+                    Value(timezone.make_aware(self.now, self.adelaide_tz)),
+                    Value('Australia/Adelaide'),
+                )
+            ),
+            [self.perth, self.sydney],
+            transform=identity,
+        )
+
+    def test_value_naive_db_timezone(self):
+        self.assertQuerysetEqual(
+            NaiveDateTimeTestModel.objects.filter(
+                aware=AtTimeZone(
+                    Value(self.now),
+                    'timezone',
+                )
+            ),
+            [self.perth, self.sydney],
+            transform=identity,
+        )
+
+    def test_value_naive_value_timezone(self):
+        self.assertQuerysetEqual(
+            NaiveDateTimeTestModel.objects.filter(
+                aware__lt=AtTimeZone(
+                    Value(self.now),
+                    Value('Australia/Adelaide'),
+                )
+            ),
+            [self.sydney],
+            transform=identity,
+        )

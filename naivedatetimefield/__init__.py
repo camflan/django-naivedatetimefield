@@ -5,7 +5,7 @@ import warnings
 import django
 import pytz
 from django.core import exceptions, checks
-from django.db.models import DateTimeField
+from django.db.models import DateTimeField, Func, Value
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.translation import gettext_lazy as _
@@ -173,6 +173,38 @@ class NaiveAsSQLMixin(object):
             with timezone.override(pytz.utc):
                 return super(NaiveAsSQLMixin, self).as_sql(compiler, connection)
         return super(NaiveAsSQLMixin, self).as_sql(compiler, connection)
+
+
+class AtTimeZone(Func):
+    """
+    This implements PostgreSQL's AT TIME ZONE construct, which returns a naive
+    datetime if used with a timezone-aware datetime, and vice versa.
+
+    See https://www.postgresql.org/docs/9.6/functions-datetime.html#FUNCTIONS-DATETIME-ZONECONVERT # noqa
+    """
+    def __init__(self, value, tz):
+        super(AtTimeZone, self).__init__(
+            value,
+            tz,
+            template='%(expressions)s',
+            arg_joiner=' AT TIME ZONE ',
+        )
+
+    def _resolve_output_field(self):
+        if getattr(self, '_output_field', None) is None:
+            value_field, _ = super(AtTimeZone, self).get_source_fields()
+            if isinstance(value_field, NaiveDateTimeField):
+                self._output_field = DateTimeField()
+            elif isinstance(value_field, DateTimeField):
+                self._output_field = NaiveDateTimeField()
+            elif value_field is None:
+                value_expr = self.get_source_expressions()[0]
+                if isinstance(value_expr, Value):
+                    if timezone.is_naive(value_expr.value):
+                        self._output_field = DateTimeField()
+                    else:
+                        self._output_field = NaiveDateTimeField()
+        return getattr(self, '_output_field', None)
 
 
 _monkeypatching = False

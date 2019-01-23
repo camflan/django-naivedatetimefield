@@ -6,6 +6,10 @@ from naivedatetimefield import NaiveDateTimeField
 class NaiveDateTimeTestModel(models.Model):
     aware = models.DateTimeField()
     naive = NaiveDateTimeField()
+    timezone = models.CharField(max_length=100, blank=True, default='utc')
+
+    class Meta:
+        ordering = ['pk']
 
 
 class NaiveDateTimeAutoNowAddModel(models.Model):
