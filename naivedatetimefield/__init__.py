@@ -181,7 +181,7 @@ class AtTimeZone(Func):
         super(AtTimeZone, self).__init__(
             value,
             tz,
-            template='%(expressions)s',
+            template='(%(expressions)s)',
             arg_joiner=' AT TIME ZONE ',
         )
 
