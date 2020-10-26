@@ -10,7 +10,7 @@ services:
 env:
   global:
     - DJANGO_SETTINGS_MODULE=tests.settings
-  matrix:
+  jobs:
     - DJANGO_VERSION=1.11.18 DB=mysql
     - DJANGO_VERSION=1.11.18 DB=postgres
     - DJANGO_VERSION=1.11.18 DB=sqlite
@@ -23,7 +23,7 @@ env:
     - DJANGO_VERSION=2.2.16 DB=mysql
     - DJANGO_VERSION=2.2.16 DB=postgres
     - DJANGO_VERSION=2.2.16 DB=sqlite
-matrix:
+jobs:
   exclude:
      - python: "2.7"
        env: DJANGO_VERSION=2.0.10 DB=mysql
