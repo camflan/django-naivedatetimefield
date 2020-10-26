@@ -19,12 +19,6 @@ env:
     - DJANGO_VERSION=2.2.16 DB=sqlite
 jobs:
   exclude:
-     - python: "3.4"
-       env: DJANGO_VERSION=2.2.16 DB=mysql
-     - python: "3.4"
-       env: DJANGO_VERSION=2.2.16 DB=sqlite
-     - python: "3.4"
-       env: DJANGO_VERSION=2.2.16 DB=postgres
      - python: "3.8"
        env: DJANGO_VERSION=1.11.29 DB=mysql
      - python: "3.8"
@@ -32,8 +26,6 @@ jobs:
      - python: "3.8"
        env: DJANGO_VERSION=1.11.29 DB=postgres
 python:
-  - "3.4"
-  - "3.5"
   - "3.6"
   - "3.7"
   - "3.8"
