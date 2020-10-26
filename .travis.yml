@@ -11,26 +11,26 @@ env:
   global:
     - DJANGO_SETTINGS_MODULE=tests.settings
   jobs:
-    - DJANGO_VERSION=1.11.18 DB=mysql
-    - DJANGO_VERSION=1.11.18 DB=postgres
-    - DJANGO_VERSION=1.11.18 DB=sqlite
-    - DJANGO_VERSION=2.0.10 DB=mysql
-    - DJANGO_VERSION=2.0.10 DB=postgres
-    - DJANGO_VERSION=2.0.10 DB=sqlite
-    - DJANGO_VERSION=2.1.5 DB=mysql
-    - DJANGO_VERSION=2.1.5 DB=postgres
-    - DJANGO_VERSION=2.1.5 DB=sqlite
+    - DJANGO_VERSION=1.11.29 DB=mysql
+    - DJANGO_VERSION=1.11.29 DB=postgres
+    - DJANGO_VERSION=1.11.29 DB=sqlite
+    - DJANGO_VERSION=2.0.13 DB=mysql
+    - DJANGO_VERSION=2.0.13 DB=postgres
+    - DJANGO_VERSION=2.0.13 DB=sqlite
+    - DJANGO_VERSION=2.1.15 DB=mysql
+    - DJANGO_VERSION=2.1.15 DB=postgres
+    - DJANGO_VERSION=2.1.15 DB=sqlite
     - DJANGO_VERSION=2.2.16 DB=mysql
     - DJANGO_VERSION=2.2.16 DB=postgres
     - DJANGO_VERSION=2.2.16 DB=sqlite
 jobs:
   exclude:
      - python: "3.4"
-       env: DJANGO_VERSION=2.1.5 DB=mysql
+       env: DJANGO_VERSION=2.1.15 DB=mysql
      - python: "3.4"
-       env: DJANGO_VERSION=2.1.5 DB=sqlite
+       env: DJANGO_VERSION=2.1.15 DB=sqlite
      - python: "3.4"
-       env: DJANGO_VERSION=2.1.5 DB=postgres
+       env: DJANGO_VERSION=2.1.15 DB=postgres
      - python: "3.4"
        env: DJANGO_VERSION=2.2.16 DB=mysql
      - python: "3.4"
