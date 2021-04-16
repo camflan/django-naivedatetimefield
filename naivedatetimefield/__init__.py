@@ -185,6 +185,24 @@ class AtTimeZone(Func):
             arg_joiner=' AT TIME ZONE ',
         )
 
+    @staticmethod
+    def _fix_value(v):
+        if (
+            isinstance(v.value, datetime.datetime)
+            and timezone.is_naive(v.value)
+        ):
+            if "output_field" not in v.__dict__:
+                v.output_field = NaiveDateTimeField()
+            elif not isinstance(v.output_field, NaiveDateTimeField):
+                raise TypeError("Naive Value passed to AtTimeZone has output_field type DateTimeField - must be None or NaiveDateTimeField")
+        return v
+
+    def _parse_expressions(self, *expressions):
+        return [
+            self._fix_value(v) if isinstance(v, Value) else v
+            for v in super()._parse_expressions(*expressions)
+        ]
+
     def _resolve_output_field(self):
         if getattr(self, '_output_field', None) is None:
             value_field, _ = super(AtTimeZone, self).get_source_fields()
