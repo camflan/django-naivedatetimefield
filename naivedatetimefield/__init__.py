@@ -119,7 +119,7 @@ class NaiveDateTimeField(DateTimeField):
     def get_prep_value(self, value):
         return super(DateTimeField, self).get_prep_value(value)
 
-    def from_db_value(self, value, expression, connection, context):
+    def from_db_value(self, value, expression, connection):
         is_truncbase = isinstance(expression, TruncBase)
         if is_truncbase and not isinstance(expression, NaiveAsSQLMixin):
             raise TypeError(
