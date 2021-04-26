@@ -11,27 +11,23 @@ env:
   global:
     - DJANGO_SETTINGS_MODULE=tests.settings
   jobs:
-    - DJANGO_VERSION=1.11.29 DB=mysql
-    - DJANGO_VERSION=1.11.29 DB=postgres
-    - DJANGO_VERSION=1.11.29 DB=sqlite
-    - DJANGO_VERSION=2.2.16 DB=mysql
-    - DJANGO_VERSION=2.2.16 DB=postgres
-    - DJANGO_VERSION=2.2.16 DB=sqlite
-jobs:
-  exclude:
-     - python: "3.8"
-       env: DJANGO_VERSION=1.11.29 DB=mysql
-     - python: "3.8"
-       env: DJANGO_VERSION=1.11.29 DB=sqlite
-     - python: "3.8"
-       env: DJANGO_VERSION=1.11.29 DB=postgres
+    - DJANGO_VERSION=2.2.* DB=mysql
+    - DJANGO_VERSION=2.2.* DB=postgres
+    - DJANGO_VERSION=2.2.* DB=sqlite
+    - DJANGO_VERSION=3.1.* DB=mysql
+    - DJANGO_VERSION=3.1.* DB=postgres
+    - DJANGO_VERSION=3.1.* DB=sqlite
+    - DJANGO_VERSION=3.2.* DB=mysql
+    - DJANGO_VERSION=3.2.* DB=postgres
+    - DJANGO_VERSION=3.2.* DB=sqlite
 python:
   - "3.6"
   - "3.7"
   - "3.8"
+  - "3.9"
 # Tell it the things it will need to install when it boots
 install:
-  - pip install -q pytz coveralls flake8 psycopg2 mysqlclient==1.3.14
+  - pip install -q pytz coveralls flake8 psycopg2 mysqlclient
   - pip install -q "Django==$DJANGO_VERSION"
   - pip install -e .
 # Tell Travis how to run the test script itself

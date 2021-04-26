@@ -6,8 +6,13 @@ import pytz
 from django.core import exceptions, checks
 from django.db.models import DateTimeField, Func, Value
 from django.db.models.functions.datetime import TruncBase, Extract, ExtractYear
-from django.db.models.lookups import Exact, GreaterThan, GreaterThanOrEqual, \
-    LessThan, LessThanOrEqual
+from django.db.models.lookups import (
+    Exact,
+    GreaterThan,
+    GreaterThanOrEqual,
+    LessThan,
+    LessThanOrEqual,
+)
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.translation import gettext_lazy as _
@@ -17,7 +22,7 @@ class NaiveDateTimeField(DateTimeField):
     description = _("Naive Date (with time)")
 
     default_error_messages = {
-        'tzaware': _("TZ-aware datetimes cannot be coerced to naive datetimes"),
+        "tzaware": _("TZ-aware datetimes cannot be coerced to naive datetimes"),
     }
 
     def get_internal_type(self):
@@ -83,7 +88,7 @@ class NaiveDateTimeField(DateTimeField):
             return value
         if isinstance(value, datetime.datetime):
             if timezone.is_aware(value):
-                raise exceptions.ValidationError(self.error_messages['tzaware'])
+                raise exceptions.ValidationError(self.error_messages["tzaware"])
             return value
         if isinstance(value, datetime.date):
             return datetime.datetime(value.year, value.month, value.day)
@@ -92,7 +97,7 @@ class NaiveDateTimeField(DateTimeField):
             parsed = parse_datetime(value)
             if parsed is not None:
                 if timezone.is_aware(parsed):
-                    raise exceptions.ValidationError(self.error_messages['tzaware'])
+                    raise exceptions.ValidationError(self.error_messages["tzaware"])
                 return parsed
         except ValueError:
             raise exceptions.ValidationError(
@@ -119,7 +124,7 @@ class NaiveDateTimeField(DateTimeField):
     def get_prep_value(self, value):
         return super(DateTimeField, self).get_prep_value(value)
 
-    def from_db_value(self, value, expression, connection, context):
+    def from_db_value(self, value, expression, connection):
         is_truncbase = isinstance(expression, TruncBase)
         if is_truncbase and not isinstance(expression, NaiveAsSQLMixin):
             raise TypeError(
@@ -151,7 +156,7 @@ class NaiveTimezoneMixin(object):
                     "tzinfo argument provided when truncating a NaiveDateTimeField. "
                     "This argument will have no effect."
                 )
-            return 'UTC'
+            return "UTC"
         return super(NaiveTimezoneMixin, self).get_tzname()
 
 
@@ -177,16 +182,34 @@ class AtTimeZone(Func):
 
     See https://www.postgresql.org/docs/9.6/functions-datetime.html#FUNCTIONS-DATETIME-ZONECONVERT # noqa
     """
+
     def __init__(self, value, tz):
         super(AtTimeZone, self).__init__(
             value,
             tz,
-            template='(%(expressions)s)',
-            arg_joiner=' AT TIME ZONE ',
+            template="(%(expressions)s)",
+            arg_joiner=" AT TIME ZONE ",
         )
 
+    @staticmethod
+    def _fix_value(v):
+        if isinstance(v.value, datetime.datetime) and timezone.is_naive(v.value):
+            if "output_field" not in v.__dict__:
+                v.output_field = NaiveDateTimeField()
+            elif not isinstance(v.output_field, NaiveDateTimeField):
+                raise TypeError(
+                    "Naive Value passed to AtTimeZone has output_field type DateTimeField - must be None or NaiveDateTimeField"
+                )
+        return v
+
+    def _parse_expressions(self, *expressions):
+        return [
+            self._fix_value(v) if isinstance(v, Value) else v
+            for v in super()._parse_expressions(*expressions)
+        ]
+
     def _resolve_output_field(self):
-        if getattr(self, '_output_field', None) is None:
+        if getattr(self, "_output_field", None) is None:
             value_field, _ = super(AtTimeZone, self).get_source_fields()
             if isinstance(value_field, NaiveDateTimeField):
                 self._output_field = DateTimeField()
@@ -199,14 +222,14 @@ class AtTimeZone(Func):
                         self._output_field = DateTimeField()
                     else:
                         self._output_field = NaiveDateTimeField()
-        return getattr(self, '_output_field', None)
+        return getattr(self, "_output_field", None)
 
 
 _monkeypatching = False
 
 
 _this_module = sys.modules[__name__]
-_db_functions = sys.modules['django.db.models.functions']
+_db_functions = sys.modules["django.db.models.functions"]
 _lookups = set(DateTimeField.get_lookups().values())
 _patch_classes = [
     (Extract, [NaiveAsSQLMixin, NaiveTimezoneMixin]),
