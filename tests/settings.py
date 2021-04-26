@@ -1,6 +1,6 @@
 import os
 
-SECRET_KEY = 'fake-key'
+SECRET_KEY = "fake-key"
 INSTALLED_APPS = ["tests"]
 
 AVAILABLE_DATABASES = {
@@ -11,14 +11,14 @@ AVAILABLE_DATABASES = {
     "postgres": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
         "NAME": os.environ.get("DJANGO_DATABASE_NAME_POSTGRES", "naivedatetimefield"),
-        "USER": os.environ.get("DJANGO_DATABASE_USER_POSTGRES", 'postgres'),
+        "USER": os.environ.get("DJANGO_DATABASE_USER_POSTGRES", "postgres"),
         "PASSWORD": os.environ.get("DJANGO_DATABASE_PASSWORD_POSTGRES", ""),
         "HOST": os.environ.get("DJANGO_DATABASE_HOST_POSTGRES", ""),
     },
     "mysql": {
         "ENGINE": "django.db.backends.mysql",
         "NAME": os.environ.get("DJANGO_DATABASE_NAME_MYSQL", "naivedatetimefield"),
-        "USER": os.environ.get("DJANGO_DATABASE_USER_MYSQL", 'root'),
+        "USER": os.environ.get("DJANGO_DATABASE_USER_MYSQL", "root"),
         "PASSWORD": os.environ.get("DJANGO_DATABASE_PASSWORD_MYSQL", ""),
         "HOST": os.environ.get("DJANGO_DATABASE_HOST_MYSQL", ""),
     },
@@ -30,6 +30,6 @@ DEBUG = True
 
 USE_TZ = True
 
-TIME_ZONE = 'America/Chicago'
+TIME_ZONE = "America/Chicago"
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

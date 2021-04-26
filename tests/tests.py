@@ -21,6 +21,7 @@ class NaiveDateTimeFieldTestCase(TestCase):
     """
     main test case for NaiveDateTimeField
     """
+
     def test_auto_now_add(self):
         obj = NaiveDateTimeAutoNowAddModel.objects.create()
 
@@ -41,7 +42,7 @@ class NaiveDateTimeFieldTestCase(TestCase):
             aware=timezone.make_aware(naive),
         )
 
-        with timezone.override('Australia/Melbourne'):
+        with timezone.override("Australia/Melbourne"):
             o2 = NaiveDateTimeTestModel.objects.create(
                 naive=naive,
                 aware=timezone.make_aware(naive),
@@ -53,7 +54,7 @@ class NaiveDateTimeFieldTestCase(TestCase):
         self.assertEqual(o1.naive, naive)
         self.assertEqual(o2.naive, naive)
 
-        with timezone.override('Australia/Adelaide'):
+        with timezone.override("Australia/Adelaide"):
             o1.refresh_from_db()
             o2.refresh_from_db()
             self.assertNotEqual(o1.aware, o2.aware)
@@ -96,14 +97,14 @@ class NaiveDateTimeFieldTestCase(TestCase):
 
         def query_truncations(module):
             return NaiveDateTimeTestModel.objects.annotate(
-                year=getattr(module, 'TruncYear')("naive"),
-                mon=getattr(module, 'TruncMonth')("naive"),
-                day=getattr(module, 'TruncDay')("naive"),
-                hour=getattr(module, 'TruncHour')("naive"),
-                min=getattr(module, 'TruncMinute')("naive"),
-                sec=getattr(module, 'TruncSecond')("naive"),
-                date=getattr(module, 'TruncDate')("naive"),
-                time=getattr(module, 'TruncTime')("naive"),
+                year=getattr(module, "TruncYear")("naive"),
+                mon=getattr(module, "TruncMonth")("naive"),
+                day=getattr(module, "TruncDay")("naive"),
+                hour=getattr(module, "TruncHour")("naive"),
+                min=getattr(module, "TruncMinute")("naive"),
+                sec=getattr(module, "TruncSecond")("naive"),
+                date=getattr(module, "TruncDate")("naive"),
+                time=getattr(module, "TruncTime")("naive"),
             ).all()[0]
 
         self.assertEqual(NaiveDateTimeTestModel.objects.count(), 1)
@@ -120,34 +121,36 @@ class NaiveDateTimeFieldTestCase(TestCase):
                 datetime.datetime(2017, 12, 31, 20, 10, 30),
                 datetime.date(2017, 12, 31),
                 datetime.time(20, 10, 30, 123456),
-            ]
+            ],
         )
 
-        with self.assertRaisesRegex(TypeError, r"Django's \w+ cannot be used with a NaiveDateTimeField"):
+        with self.assertRaisesRegex(
+            TypeError, r"Django's \w+ cannot be used with a NaiveDateTimeField"
+        ):
             query_truncations(functions)
 
     def test_date_transforms(self):
         """
         Test that date transforms work regardless of active timezone.
         """
-        timezone.activate('utc')
+        timezone.activate("utc")
 
         # Create some borderline datetimes, hard-coded for easier visualisation/verification
         # >>> dt = datetime.datetime(2017, 1, 1, 10, 30)
         # >>> for i in range(12): repr(dt + timedelta(days=121*i, hours=13*i, minutes=4*i, seconds=i))
         datetimes = [
-            datetime.datetime(2017,  1,  1, 10, 30,  0),
-            datetime.datetime(2017,  5,  2, 23, 34,  1),
-            datetime.datetime(2017,  9,  1, 12, 38,  2),
-            datetime.datetime(2018,  1,  1,  1, 42,  3),
-            datetime.datetime(2018,  5,  2, 14, 46,  4),
-            datetime.datetime(2018,  9,  1,  3, 50,  5),
-            datetime.datetime(2018, 12, 31, 16, 54,  6),
-            datetime.datetime(2019,  5,  2,  5, 58,  7),
-            datetime.datetime(2019,  8, 31, 19,  2,  8),
-            datetime.datetime(2019, 12, 31,  8,  6,  9),
-            datetime.datetime(2020,  4, 30, 21, 10, 10),
-            datetime.datetime(2020,  8, 30, 10, 14, 11),
+            datetime.datetime(2017, 1, 1, 10, 30, 0),
+            datetime.datetime(2017, 5, 2, 23, 34, 1),
+            datetime.datetime(2017, 9, 1, 12, 38, 2),
+            datetime.datetime(2018, 1, 1, 1, 42, 3),
+            datetime.datetime(2018, 5, 2, 14, 46, 4),
+            datetime.datetime(2018, 9, 1, 3, 50, 5),
+            datetime.datetime(2018, 12, 31, 16, 54, 6),
+            datetime.datetime(2019, 5, 2, 5, 58, 7),
+            datetime.datetime(2019, 8, 31, 19, 2, 8),
+            datetime.datetime(2019, 12, 31, 8, 6, 9),
+            datetime.datetime(2020, 4, 30, 21, 10, 10),
+            datetime.datetime(2020, 8, 30, 10, 14, 11),
         ]
 
         NaiveDateTimeTestModel.objects.bulk_create(
@@ -208,23 +211,45 @@ class NaiveDateTimeFieldTestCase(TestCase):
                 self.assertEqual(count_filter(naive__week_day__gte=4), 6)
                 self.assertEqual(count_filter(naive__week_day=4), 1)
 
-                self.assertEqual(count_filter(naive__date__lt=datetime.date(2018, 12, 31)), 6)
-                self.assertEqual(count_filter(naive__date__lte=datetime.date(2018, 12, 31)), 7)
-                self.assertEqual(count_filter(naive__date__gt=datetime.date(2018, 12, 31)), 5)
-                self.assertEqual(count_filter(naive__date__gte=datetime.date(2018, 12, 31)), 6)
-                self.assertEqual(count_filter(naive__date=datetime.date(2018, 12, 31)), 1)
+                self.assertEqual(
+                    count_filter(naive__date__lt=datetime.date(2018, 12, 31)), 6
+                )
+                self.assertEqual(
+                    count_filter(naive__date__lte=datetime.date(2018, 12, 31)), 7
+                )
+                self.assertEqual(
+                    count_filter(naive__date__gt=datetime.date(2018, 12, 31)), 5
+                )
+                self.assertEqual(
+                    count_filter(naive__date__gte=datetime.date(2018, 12, 31)), 6
+                )
+                self.assertEqual(
+                    count_filter(naive__date=datetime.date(2018, 12, 31)), 1
+                )
 
-                if db.connection.vendor != 'mysql':  # known bug in Django's mysql date handling
-                    self.assertEqual(count_filter(naive__time__lt=datetime.time(10, 30, 0)), 5)
-                    self.assertEqual(count_filter(naive__time__lte=datetime.time(10, 30, 0)), 6)
-                    self.assertEqual(count_filter(naive__time__gt=datetime.time(10, 30, 0)), 6)
-                    self.assertEqual(count_filter(naive__time__gte=datetime.time(10, 30, 0)), 7)
-                    self.assertEqual(count_filter(naive__time=datetime.time(10, 30, 0)), 1)
+                if (
+                    db.connection.vendor != "mysql"
+                ):  # known bug in Django's mysql date handling
+                    self.assertEqual(
+                        count_filter(naive__time__lt=datetime.time(10, 30, 0)), 5
+                    )
+                    self.assertEqual(
+                        count_filter(naive__time__lte=datetime.time(10, 30, 0)), 6
+                    )
+                    self.assertEqual(
+                        count_filter(naive__time__gt=datetime.time(10, 30, 0)), 6
+                    )
+                    self.assertEqual(
+                        count_filter(naive__time__gte=datetime.time(10, 30, 0)), 7
+                    )
+                    self.assertEqual(
+                        count_filter(naive__time=datetime.time(10, 30, 0)), 1
+                    )
 
         # Test in some out-there timezones
-        test_in_timezone('utc')
-        test_in_timezone('Pacific/Chatham')  # +12:45/+13:45
-        test_in_timezone('Pacific/Marquesas')  # -09:30
+        test_in_timezone("utc")
+        test_in_timezone("Pacific/Chatham")  # +12:45/+13:45
+        test_in_timezone("Pacific/Marquesas")  # -09:30
 
     def test_date_extract_annotations(self):
         """
@@ -238,14 +263,14 @@ class NaiveDateTimeFieldTestCase(TestCase):
 
         def query_transforms(module):
             return NaiveDateTimeTestModel.objects.annotate(
-                year=getattr(module, 'ExtractYear')("naive"),
-                mon=getattr(module, 'ExtractMonth')("naive"),
-                day=getattr(module, 'ExtractDay')("naive"),
-                hour=getattr(module, 'ExtractHour')("naive"),
-                min=getattr(module, 'ExtractMinute')("naive"),
-                sec=getattr(module, 'ExtractSecond')("naive"),
-                week=getattr(module, 'ExtractWeek')("naive"),
-                dow=getattr(module, 'ExtractWeekDay')("naive"),
+                year=getattr(module, "ExtractYear")("naive"),
+                mon=getattr(module, "ExtractMonth")("naive"),
+                day=getattr(module, "ExtractDay")("naive"),
+                hour=getattr(module, "ExtractHour")("naive"),
+                min=getattr(module, "ExtractMinute")("naive"),
+                sec=getattr(module, "ExtractSecond")("naive"),
+                week=getattr(module, "ExtractWeek")("naive"),
+                dow=getattr(module, "ExtractWeekDay")("naive"),
             )[0]
 
         r = query_transforms(naivedatetimefield)
@@ -344,28 +369,28 @@ class AtTimeZoneTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.now = datetime.datetime(2019, 1, 15, 10)
-        cls.perth_tz = pytz.timezone('Australia/Perth')
-        cls.sydney_tz = pytz.timezone('Australia/Sydney')
-        cls.adelaide_tz = pytz.timezone('Australia/Adelaide')
+        cls.perth_tz = pytz.timezone("Australia/Perth")
+        cls.sydney_tz = pytz.timezone("Australia/Sydney")
+        cls.adelaide_tz = pytz.timezone("Australia/Adelaide")
 
         cls.perth = NaiveDateTimeTestModel.objects.create(
             naive=cls.now,
             aware=timezone.make_aware(cls.now, cls.perth_tz),
-            timezone='Australia/Perth',
+            timezone="Australia/Perth",
         )
 
         cls.sydney = NaiveDateTimeTestModel.objects.create(
             naive=cls.now,
             aware=timezone.make_aware(cls.now, cls.sydney_tz),
-            timezone='Australia/Sydney',
+            timezone="Australia/Sydney",
         )
 
     def test_annotate(self):
         self.assertQuerysetEqual(
             NaiveDateTimeTestModel.objects.annotate(
-                naive_converted=AtTimeZone('aware', 'timezone'),
-                aware_converted=AtTimeZone('naive', 'timezone'),
-            ).values_list('naive_converted', 'aware_converted'),
+                naive_converted=AtTimeZone("aware", "timezone"),
+                aware_converted=AtTimeZone("naive", "timezone"),
+            ).values_list("naive_converted", "aware_converted"),
             [
                 (self.now, timezone.make_aware(self.now, self.perth_tz)),
                 (self.now, timezone.make_aware(self.now, self.sydney_tz)),
@@ -377,8 +402,8 @@ class AtTimeZoneTests(TestCase):
         self.assertQuerysetEqual(
             NaiveDateTimeTestModel.objects.filter(
                 naive=AtTimeZone(
-                    'aware',
-                    'timezone',
+                    "aware",
+                    "timezone",
                 )
             ),
             [self.perth, self.sydney],
@@ -389,8 +414,8 @@ class AtTimeZoneTests(TestCase):
         self.assertQuerysetEqual(
             NaiveDateTimeTestModel.objects.filter(
                 naive__lt=AtTimeZone(
-                    'aware',
-                    Value('Australia/Adelaide'),
+                    "aware",
+                    Value("Australia/Adelaide"),
                 )
             ),
             [self.perth],
@@ -401,8 +426,8 @@ class AtTimeZoneTests(TestCase):
         self.assertQuerysetEqual(
             NaiveDateTimeTestModel.objects.filter(
                 aware=AtTimeZone(
-                    'naive',
-                    'timezone',
+                    "naive",
+                    "timezone",
                 )
             ),
             [self.perth, self.sydney],
@@ -413,8 +438,8 @@ class AtTimeZoneTests(TestCase):
         self.assertQuerysetEqual(
             NaiveDateTimeTestModel.objects.filter(
                 aware__lt=AtTimeZone(
-                    'naive',
-                    Value('Australia/Adelaide'),
+                    "naive",
+                    Value("Australia/Adelaide"),
                 )
             ),
             [self.sydney],
@@ -426,7 +451,7 @@ class AtTimeZoneTests(TestCase):
             NaiveDateTimeTestModel.objects.filter(
                 naive__lt=AtTimeZone(
                     Value(timezone.make_aware(self.now, self.adelaide_tz)),
-                    'timezone',
+                    "timezone",
                 )
             ),
             [self.sydney],
@@ -438,7 +463,7 @@ class AtTimeZoneTests(TestCase):
             NaiveDateTimeTestModel.objects.filter(
                 naive__lt=AtTimeZone(
                     timezone.make_aware(self.now, self.adelaide_tz),
-                    'timezone',
+                    "timezone",
                 )
             ),
             [self.sydney],
@@ -450,7 +475,7 @@ class AtTimeZoneTests(TestCase):
             NaiveDateTimeTestModel.objects.filter(
                 naive=AtTimeZone(
                     Value(timezone.make_aware(self.now, self.adelaide_tz)),
-                    Value('Australia/Adelaide'),
+                    Value("Australia/Adelaide"),
                 )
             ),
             [self.perth, self.sydney],
@@ -462,7 +487,7 @@ class AtTimeZoneTests(TestCase):
             NaiveDateTimeTestModel.objects.filter(
                 naive=AtTimeZone(
                     timezone.make_aware(self.now, self.adelaide_tz),
-                    Value('Australia/Adelaide'),
+                    Value("Australia/Adelaide"),
                 )
             ),
             [self.perth, self.sydney],
@@ -474,7 +499,7 @@ class AtTimeZoneTests(TestCase):
             NaiveDateTimeTestModel.objects.filter(
                 aware=AtTimeZone(
                     Value(self.now),
-                    'timezone',
+                    "timezone",
                 )
             ),
             [self.perth, self.sydney],
@@ -486,7 +511,7 @@ class AtTimeZoneTests(TestCase):
             NaiveDateTimeTestModel.objects.filter(
                 aware=AtTimeZone(
                     self.now,
-                    'timezone',
+                    "timezone",
                 )
             ),
             [self.perth, self.sydney],
@@ -498,7 +523,7 @@ class AtTimeZoneTests(TestCase):
             NaiveDateTimeTestModel.objects.filter(
                 aware__lt=AtTimeZone(
                     Value(self.now),
-                    Value('Australia/Adelaide'),
+                    Value("Australia/Adelaide"),
                 )
             ),
             [self.sydney],
@@ -510,7 +535,7 @@ class AtTimeZoneTests(TestCase):
             NaiveDateTimeTestModel.objects.filter(
                 aware__lt=AtTimeZone(
                     self.now,
-                    Value('Australia/Adelaide'),
+                    Value("Australia/Adelaide"),
                 )
             ),
             [self.sydney],
