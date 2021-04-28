@@ -7,6 +7,7 @@ AVAILABLE_DATABASES = {
     "sqlite": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": ":memory:",
+        "TIME_ZONE": "America/Chicago",
     },
     "postgres": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
@@ -21,6 +22,7 @@ AVAILABLE_DATABASES = {
         "USER": os.environ.get("DJANGO_DATABASE_USER_MYSQL", "root"),
         "PASSWORD": os.environ.get("DJANGO_DATABASE_PASSWORD_MYSQL", ""),
         "HOST": os.environ.get("DJANGO_DATABASE_HOST_MYSQL", ""),
+        "TIME_ZONE": "America/Chicago",
     },
 }
 
@@ -30,6 +32,6 @@ DEBUG = True
 
 USE_TZ = True
 
-TIME_ZONE = "America/Chicago"
+TIME_ZONE = "Australia/Perth"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

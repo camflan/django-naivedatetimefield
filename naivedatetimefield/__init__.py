@@ -1,8 +1,9 @@
 import datetime
 import sys
-import warnings
 
 import pytz
+
+import django
 from django.core import exceptions, checks
 from django.db.models import DateTimeField, Func, Value
 from django.db.models.functions.datetime import TruncBase, Extract, ExtractYear
@@ -16,6 +17,16 @@ from django.db.models.lookups import (
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.translation import gettext_lazy as _
+
+
+def _conn_tz(connection):
+    """
+    Before Django 3.1, connection.timezone is always None when using PostgreSQL.
+    """
+    if django.VERSION < (3, 1):
+        return pytz.timezone(connection.timezone_name)
+    else:
+        return connection.timezone
 
 
 class NaiveDateTimeField(DateTimeField):
@@ -124,6 +135,10 @@ class NaiveDateTimeField(DateTimeField):
     def get_prep_value(self, value):
         return super(DateTimeField, self).get_prep_value(value)
 
+    def get_db_prep_value(self, value, connection, prepared=False):
+        retval = super().get_db_prep_value(value, connection, prepared)
+        return retval
+
     def from_db_value(self, value, expression, connection):
         is_truncbase = isinstance(expression, TruncBase)
         if is_truncbase and not isinstance(expression, NaiveAsSQLMixin):
@@ -131,12 +146,8 @@ class NaiveDateTimeField(DateTimeField):
                 "Django's %s cannot be used with a NaiveDateTimeField"
                 % expression.__class__.__name__
             )
-        if connection.vendor == "postgresql":
-            if is_truncbase:
-                return timezone.make_naive(value, pytz.utc)
-            return value
         if timezone.is_aware(value):
-            return timezone.make_naive(value, connection.timezone)
+            return timezone.make_naive(value, _conn_tz(connection))
         return value
 
     def pre_save(self, model_instance, add):
@@ -148,29 +159,31 @@ class NaiveDateTimeField(DateTimeField):
             return super(NaiveDateTimeField, self).pre_save(model_instance, add)
 
 
-class NaiveTimezoneMixin(object):
-    def get_tzname(self):
-        if isinstance(self.output_field, NaiveDateTimeField):
-            if self.tzinfo is not None:
-                warnings.warn(
-                    "tzinfo argument provided when truncating a NaiveDateTimeField. "
-                    "This argument will have no effect."
-                )
-            return "UTC"
-        return super(NaiveTimezoneMixin, self).get_tzname()
-
-
 class NaiveConvertValueMixin(object):
-    def convert_value(self, value, *args, **kwargs):
+    def convert_value(self, value, expression, connection):
         if isinstance(self.output_field, NaiveDateTimeField):
-            return value
-        return super(NaiveConvertValueMixin, self).convert_value(value, *args, **kwargs)
+            if timezone.is_aware(value):
+                return timezone.make_naive(value, _conn_tz(connection))
+        return super(NaiveConvertValueMixin, self).convert_value(
+            value, expression, connection
+        )
 
 
 class NaiveAsSQLMixin(object):
+    """
+    The purpose of this mixin is to override the active timezone when
+    generating SQL for truncate and extract operations, to effectively
+    nullify the timezone conversion that Django unconditionally applies
+    to datetime values.
+    """
+
     def as_sql(self, compiler, connection):
         if isinstance(self.lhs.output_field, NaiveDateTimeField):
-            with timezone.override(pytz.utc):
+            if self.tzinfo is not None:
+                raise ValueError("tzinfo can only be used with DateTimeField.")
+            # Account for https://github.com/django/django/commit/cef3f2d3
+            tz_override = pytz.utc if django.VERSION < (3,) else _conn_tz(connection)
+            with timezone.override(tz_override):
                 return super(NaiveAsSQLMixin, self).as_sql(compiler, connection)
         return super(NaiveAsSQLMixin, self).as_sql(compiler, connection)
 
@@ -232,8 +245,8 @@ _this_module = sys.modules[__name__]
 _db_functions = sys.modules["django.db.models.functions"]
 _lookups = set(DateTimeField.get_lookups().values())
 _patch_classes = [
-    (Extract, [NaiveAsSQLMixin, NaiveTimezoneMixin]),
-    (TruncBase, [NaiveAsSQLMixin, NaiveTimezoneMixin, NaiveConvertValueMixin]),
+    (Extract, [NaiveAsSQLMixin]),
+    (TruncBase, [NaiveAsSQLMixin, NaiveConvertValueMixin]),
 ]
 for original, mixins in _patch_classes:
     for cls in original.__subclasses__():
