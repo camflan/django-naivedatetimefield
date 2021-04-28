@@ -7,6 +7,6 @@ NaiveDateTimeField offers the ability to store a naive timestamp, useful for bak
 
 
 ## Contributors
-- (Camron Flanders)[https://github.com/camflan]
-- (Alex Hill)[https://github.com/AlexHill]
-- (Lincoln Puzey)[https://github.com/LincolnPuzey]
+- [Camron Flanders](https://github.com/camflan)
+- [Alex Hill](https://github.com/AlexHill)
+- [Lincoln Puzey](https://github.com/LincolnPuzey)
