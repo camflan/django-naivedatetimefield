@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from distutils.core import setup
+
 from setuptools import find_packages
 
 setup(
     name="django-naivedatetimefield",
     packages=find_packages(),
-    version="1.4.0",
+    version="2.0.0",
     author=u"Camron Flanders",
     author_email=u"me@camronflanders.com",
     url="https://github.com/camflan/django-naivedatetimefield/",
