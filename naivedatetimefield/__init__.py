@@ -136,8 +136,7 @@ class NaiveDateTimeField(DateTimeField):
         return super(DateTimeField, self).get_prep_value(value)
 
     def get_db_prep_value(self, value, connection, prepared=False):
-        retval = super().get_db_prep_value(value, connection, prepared)
-        return retval
+        return super().get_db_prep_value(value, connection, prepared)
 
     def from_db_value(self, value, expression, connection):
         is_truncbase = isinstance(expression, TruncBase)
