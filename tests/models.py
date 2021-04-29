@@ -28,3 +28,7 @@ class NaiveDateTimeAutoNowModel(models.Model):
     naive = NaiveDateTimeField(
         auto_now=True,
     )
+
+
+class NullableNaiveDateTimeModel(models.Model):
+    naive = NaiveDateTimeField(blank=True, null=True)
