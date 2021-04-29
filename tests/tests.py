@@ -14,6 +14,7 @@ from .models import (
     NaiveDateTimeTestModel,
     NaiveDateTimeAutoNowAddModel,
     NaiveDateTimeAutoNowModel,
+    NullableNaiveDateTimeModel,
 )
 
 
@@ -358,6 +359,11 @@ class NaiveDateTimeFieldTestCase(TestCase):
         ).count()
 
         self.assertTrue(find_with_naive_in_utc == 1)
+
+    def test_nullable_naive_datetimefield(self):
+        o = NullableNaiveDateTimeModel.objects.create(naive=None)
+        o.refresh_from_db()
+        self.assertIsNone(o.naive)
 
 
 def identity(v):

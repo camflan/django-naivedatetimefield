@@ -135,16 +135,16 @@ class NaiveDateTimeField(DateTimeField):
     def get_prep_value(self, value):
         return super(DateTimeField, self).get_prep_value(value)
 
-    def get_db_prep_value(self, value, connection, prepared=False):
-        return super().get_db_prep_value(value, connection, prepared)
+    def from_db_value(self, value, expr, connection):
+        if value is None:
+            return None
 
-    def from_db_value(self, value, expression, connection):
-        is_truncbase = isinstance(expression, TruncBase)
-        if is_truncbase and not isinstance(expression, NaiveAsSQLMixin):
+        if isinstance(expr, TruncBase) and not isinstance(expr, NaiveAsSQLMixin):
             raise TypeError(
                 "Django's %s cannot be used with a NaiveDateTimeField"
-                % expression.__class__.__name__
+                % expr.__class__.__name__
             )
+
         if timezone.is_aware(value):
             return timezone.make_naive(value, _conn_tz(connection))
         return value
