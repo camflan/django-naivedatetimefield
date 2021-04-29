@@ -1,19 +1,18 @@
 import datetime
-import sys
-
-import pytz
 
 import django
+import django.db.models.functions
+import pytz
+from django.conf import settings
 from django.core import exceptions, checks
 from django.db.models import DateTimeField, Func, Value
-from django.db.models.functions.datetime import TruncBase, Extract, ExtractYear
-from django.db.models.lookups import (
-    Exact,
-    GreaterThan,
-    GreaterThanOrEqual,
-    LessThan,
-    LessThanOrEqual,
+from django.db.models.functions.datetime import (
+    TruncBase,
+    Extract,
+    ExtractYear,
+    ExtractIsoYear,
 )
+from django.db.models.lookups import YearLookup
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.translation import gettext_lazy as _
@@ -187,6 +186,13 @@ class NaiveAsSQLMixin(object):
         return super(NaiveAsSQLMixin, self).as_sql(compiler, connection)
 
 
+class YearLookupAsSQLMixin(object):
+    def as_sql(self, compiler, connection):
+        tz_override = pytz.utc if django.VERSION < (3,) else _conn_tz(connection)
+        with timezone.override(tz_override):
+            return super().as_sql(compiler, connection)
+
+
 class AtTimeZone(Func):
     """
     This implements PostgreSQL's AT TIME ZONE construct, which returns a naive
@@ -237,35 +243,59 @@ class AtTimeZone(Func):
         return getattr(self, "_output_field", None)
 
 
-_monkeypatching = False
+def _create_datetime_functions(monkeypatch=False):
+    def leaf_descendants(cls):
+        if not cls.__subclasses__():
+            yield cls
+        else:
+            for child in cls.__subclasses__():
+                yield from leaf_descendants(child)
+
+    def wrap_class(cls, mixins):
+        return type(cls.__name__, (*mixins, cls), {})
+
+    patch_classes = {
+        Extract: [NaiveAsSQLMixin],
+        TruncBase: [NaiveAsSQLMixin, NaiveConvertValueMixin],
+        YearLookup: [YearLookupAsSQLMixin],
+    }
+
+    # create subclasses of all the classes we care about with their nominated mixins
+    patched_classes = {
+        lookup: wrap_class(lookup, mixins)
+        for lookup_base, mixins in patch_classes.items()
+        for lookup in list(leaf_descendants(lookup_base))
+    }
+    # Nearly everything we want to patch is a subclass of the above undocumented
+    # base classes, but Extract is both parent to ExtractXXX and a part of the
+    # documented public API itself.
+    patched_classes[Extract] = wrap_class(Extract, [NaiveAsSQLMixin])
+
+    # for the patched classes registered as lookups, override them so they
+    # work as expected in ORM query syntax, e.g. Q(naive_timestamp__hour=12)
+    datetimefield_lookups = set(DateTimeField.get_lookups().values())
+    for lookup in datetimefield_lookups & patched_classes.keys():
+        patched_lookup = patched_classes[lookup]
+        NaiveDateTimeField.register_lookup(patched_lookup)
+
+        # Year lookups for DateTimeFields have special handling in core,
+        # so we need to patch the classes responsible for that too.
+        if lookup in [ExtractYear, ExtractIsoYear]:
+            lookup_lookups = set(lookup.get_lookups().values())
+            for lookup_ in lookup_lookups & patched_classes.keys():
+                patched_lookup.register_lookup(patched_classes[lookup_])
+
+    for patched_lookup in patched_classes.values():
+        # add to this module and optionally monkeypatch
+        globals()[patched_lookup.__name__] = patched_lookup
+        if monkeypatch:
+            setattr(
+                django.db.models.functions,
+                patched_lookup.__name__,
+                patched_lookup,
+            )
 
 
-_this_module = sys.modules[__name__]
-_db_functions = sys.modules["django.db.models.functions"]
-_lookups = set(DateTimeField.get_lookups().values())
-_patch_classes = [
-    (Extract, [NaiveAsSQLMixin]),
-    (TruncBase, [NaiveAsSQLMixin, NaiveConvertValueMixin]),
-]
-for original, mixins in _patch_classes:
-    for cls in original.__subclasses__():
-
-        bases = tuple(mixins) + (cls,)
-        naive_cls = type(cls.__name__, bases, {})
-
-        if _monkeypatching:
-            setattr(_db_functions, cls.__name__, naive_cls)
-
-        if cls in _lookups:
-            NaiveDateTimeField.register_lookup(naive_cls)
-
-            # Year lookups don't need special handling with naive fields
-            if cls is ExtractYear:
-                naive_cls.register_lookup(Exact)
-                naive_cls.register_lookup(GreaterThan)
-                naive_cls.register_lookup(GreaterThanOrEqual)
-                naive_cls.register_lookup(LessThan)
-                naive_cls.register_lookup(LessThanOrEqual)
-
-        # Add an attribute to this module so these functions can be imported
-        setattr(_this_module, cls.__name__, naive_cls)
+_create_datetime_functions(
+    monkeypatch=getattr(settings, "NAIVEDATETIMEFIELD_MONKEYPATCHING", False)
+)
